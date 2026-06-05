@@ -3,41 +3,162 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'">
     <title>Appian Task</title>
+
+    <!-- Teams JS SDK -->
+    <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+
+    <!-- Appian Embedded Bootstrap -->
     <script src="https://hsbc-gtrf.appiancloud.com/suite/tempo/ui/sail-client/embeddedBootstrap.nocache.js" id="appianEmbedded" data-signin="https://hsbc-gtrf.appiancloud.com/suite/"></script>
+
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: sans-serif; background: #f5f5f5; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f5f5;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      #loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        flex-direction: column;
+        gap: 12px;
+        color: #555;
+        font-size: 14px;
+      }
+
+      .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #ddd;
+        border-top-color: #0070C0;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
       #error {
         display: none;
-        padding: 24px;
+        padding: 32px;
+        text-align: center;
         color: #c00;
         font-size: 14px;
+        line-height: 1.6;
+      }
+
+      #error strong {
+        display: block;
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+      }
+
+      #task-container {
+        display: none;
+        height: 100vh;
+        overflow: auto;
+      }
+
+      appian-task {
+        display: block;
+        height: 100%;
       }
     </style>
   </head>
   <body>
-    <div id="error">No task ID provided. Please open this page with a <code>?taskId=</code> parameter.</div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <span>Loading Appian task...</span>
+    </div>
+
+    <div id="error">
+      <strong>No task ID provided</strong>
+      Please open this page with a <code>?taskId=</code> parameter,
+      or via the deep link from your Planner task.
+    </div>
+
     <div id="task-container"></div>
- 
-      <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
-  <script>
-    microsoftTeams.app.initialize().then(() => {
-      microsoftTeams.app.getContext().then((context) => {
-        // Try Teams subEntityId first, fall back to URL query param
-        const taskId = context?.page?.subPageId || 
-                       new URLSearchParams(window.location.search).get("taskId");
-  
-        if (!taskId) {
-          document.getElementById("error").style.display = "block";
-          return;
-        }
-  
-        const taskEl = document.createElement("appian-task");
-        taskEl.setAttribute("taskId", taskId);
-        document.getElementById("task-container").appendChild(taskEl);
-      });
-    });
-  </script>
+
+    <script>
+      (function () {
+
+        // Initialise Teams SDK — tells Teams the app is alive and prevents timeout error
+        microsoftTeams.app.initialize().then(function () {
+
+          microsoftTeams.app.getContext().then(function (context) {
+
+            // Prefer subPageId from Teams deep link context, fall back to URL query param
+            var taskId = (context && context.page && context.page.subPageId)
+              ? context.page.subPageId
+              : new URLSearchParams(window.location.search).get("taskId");
+
+            if (!taskId) {
+              document.getElementById("loading").style.display = "none";
+              document.getElementById("error").style.display = "block";
+              microsoftTeams.app.notifySuccess();
+              return;
+            }
+
+            // Create the Appian task element dynamically
+            var taskEl = document.createElement("appian-task");
+            taskEl.setAttribute("taskId", taskId);
+
+            var container = document.getElementById("task-container");
+            container.appendChild(taskEl);
+            container.style.display = "block";
+            document.getElementById("loading").style.display = "none";
+
+            // Notify Teams the app loaded successfully
+            microsoftTeams.app.notifySuccess();
+
+          }).catch(function () {
+            // If Teams context fails, fall back to query param (e.g. browser direct access)
+            var taskId = new URLSearchParams(window.location.search).get("taskId");
+
+            if (!taskId) {
+              document.getElementById("loading").style.display = "none";
+              document.getElementById("error").style.display = "block";
+              return;
+            }
+
+            var taskEl = document.createElement("appian-task");
+            taskEl.setAttribute("taskId", taskId);
+            var container = document.getElementById("task-container");
+            container.appendChild(taskEl);
+            container.style.display = "block";
+            document.getElementById("loading").style.display = "none";
+          });
+
+        }).catch(function () {
+          // Not running inside Teams — use query param directly
+          var taskId = new URLSearchParams(window.location.search).get("taskId");
+
+          if (!taskId) {
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("error").style.display = "block";
+            return;
+          }
+
+          var taskEl = document.createElement("appian-task");
+          taskEl.setAttribute("taskId", taskId);
+          var container = document.getElementById("task-container");
+          container.appendChild(taskEl);
+          container.style.display = "block";
+          document.getElementById("loading").style.display = "none";
+        });
+
+      })();
+    </script>
+
   </body>
 </html>
