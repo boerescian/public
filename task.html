@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appian Task</title>
+    <script src="https://hsbc-gtrf.appiancloud.com/suite/tempo/ui/sail-client/embeddedBootstrap.nocache.js" id="appianEmbedded" data-signin="https://hsbc-gtrf.appiancloud.com/suite/"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: sans-serif; background: #f5f5f5; }
+      #error {
+        display: none;
+        padding: 24px;
+        color: #c00;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="error">No task ID provided. Please open this page with a <code>?taskId=</code> parameter.</div>
+    <div id="task-container"></div>
+ 
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const taskId = params.get("taskId");
+ 
+        if (!taskId) {
+          document.getElementById("error").style.display = "block";
+          return;
+        }
+ 
+        const taskEl = document.createElement("appian-task");
+        taskEl.setAttribute("taskId", taskId);
+        document.getElementById("task-container").appendChild(taskEl);
+      })();
+    </script>
+  </body>
+</html>
