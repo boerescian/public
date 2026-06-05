@@ -20,20 +20,24 @@
     <div id="error">No task ID provided. Please open this page with a <code>?taskId=</code> parameter.</div>
     <div id="task-container"></div>
  
-    <script>
-      (function () {
-        const params = new URLSearchParams(window.location.search);
-        const taskId = params.get("taskId");
- 
+      <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+  <script>
+    microsoftTeams.app.initialize().then(() => {
+      microsoftTeams.app.getContext().then((context) => {
+        // Try Teams subEntityId first, fall back to URL query param
+        const taskId = context?.page?.subPageId || 
+                       new URLSearchParams(window.location.search).get("taskId");
+  
         if (!taskId) {
           document.getElementById("error").style.display = "block";
           return;
         }
- 
+  
         const taskEl = document.createElement("appian-task");
         taskEl.setAttribute("taskId", taskId);
         document.getElementById("task-container").appendChild(taskEl);
-      })();
-    </script>
+      });
+    });
+  </script>
   </body>
 </html>
