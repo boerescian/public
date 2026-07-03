@@ -46,29 +46,13 @@
         to { transform: rotate(360deg); }
       }
 
-      #error {
-        display: none;
-        padding: 32px;
-        text-align: center;
-        color: #c00;
-        font-size: 14px;
-        line-height: 1.6;
-      }
-
-      #error strong {
-        display: block;
-        font-size: 16px;
-        margin-bottom: 8px;
-        color: #333;
-      }
-
       #task-container {
         display: none;
         height: 100vh;
         overflow: auto;
       }
 
-      appian-task {
+      appian-task, appian-action {
         display: block;
         height: 100%;
       }
@@ -78,13 +62,7 @@
 
     <div id="loading">
       <div class="spinner"></div>
-      <span>Loading Appian task...</span>
-    </div>
-
-    <div id="error">
-      <strong>No task ID provided</strong>
-      Please open this page with a <code>?taskId=</code> parameter,
-      or via the deep link from your Planner task.
+      <span>Loading...</span>
     </div>
 
     <div id="task-container"></div>
@@ -92,69 +70,38 @@
     <script>
       (function () {
 
-        // Initialise Teams SDK — tells Teams the app is alive and prevents timeout error
+        function render(taskId) {
+          var el;
+
+          if (taskId) {
+            el = document.createElement("appian-task");
+            el.setAttribute("taskId", taskId);
+          } else {
+            el = document.createElement("appian-action");
+            el.setAttribute("processModelUuid", "2903d426-0073-468b-a471-fd863144f443");
+          }
+
+          var container = document.getElementById("task-container");
+          container.appendChild(el);
+          container.style.display = "block";
+          document.getElementById("loading").style.display = "none";
+        }
+
         microsoftTeams.app.initialize().then(function () {
-
           microsoftTeams.app.getContext().then(function (context) {
-
-            // Prefer subPageId from Teams deep link context, fall back to URL query param
             var taskId = (context && context.page && context.page.subPageId)
               ? context.page.subPageId
               : new URLSearchParams(window.location.search).get("taskId");
 
-            if (!taskId) {
-              document.getElementById("loading").style.display = "none";
-              document.getElementById("error").style.display = "block";
-              microsoftTeams.app.notifySuccess();
-              return;
-            }
-
-            // Create the Appian task element dynamically
-            var taskEl = document.createElement("appian-task");
-            taskEl.setAttribute("taskId", taskId);
-
-            var container = document.getElementById("task-container");
-            container.appendChild(taskEl);
-            container.style.display = "block";
-            document.getElementById("loading").style.display = "none";
-
-            // Notify Teams the app loaded successfully
+            render(taskId);
             microsoftTeams.app.notifySuccess();
 
           }).catch(function () {
-            // If Teams context fails, fall back to query param (e.g. browser direct access)
-            var taskId = new URLSearchParams(window.location.search).get("taskId");
-
-            if (!taskId) {
-              document.getElementById("loading").style.display = "none";
-              document.getElementById("error").style.display = "block";
-              return;
-            }
-
-            var taskEl = document.createElement("appian-task");
-            taskEl.setAttribute("taskId", taskId);
-            var container = document.getElementById("task-container");
-            container.appendChild(taskEl);
-            container.style.display = "block";
-            document.getElementById("loading").style.display = "none";
+            render(new URLSearchParams(window.location.search).get("taskId"));
           });
 
         }).catch(function () {
-          // Not running inside Teams — use query param directly
-          var taskId = new URLSearchParams(window.location.search).get("taskId");
-
-          if (!taskId) {
-            document.getElementById("loading").style.display = "none";
-            document.getElementById("error").style.display = "block";
-            return;
-          }
-
-          var taskEl = document.createElement("appian-task");
-          taskEl.setAttribute("taskId", taskId);
-          var container = document.getElementById("task-container");
-          container.appendChild(taskEl);
-          container.style.display = "block";
-          document.getElementById("loading").style.display = "none";
+          render(new URLSearchParams(window.location.search).get("taskId"));
         });
 
       })();
